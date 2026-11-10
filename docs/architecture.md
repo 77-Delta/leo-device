@@ -10,12 +10,12 @@ flowchart LR
   subgraph device [Device]
     BTN[Push-to-talk button]
     MCU[nRF54L15 companion\nZephyr, always on]
-    SOC[SoC with NPU\nLeo OS, on demand]
+    SOC[RK3576 with NPU\nLeo OS, on demand]
     LOCAL[Local models\nSTT, small LLM, TTS]
     ROUTER[Router\nlocal first, cloud on demand]
     AGENT[Agent runtime\nMCP client, intents]
     DISP[Status display]
-    OUT[HDMI / USB-C DisplayPort]
+    OUT[HDMI output]
     MIC[2x MEMS microphones]
     SPK[Speaker and codec]
     BAT[Li-Po battery\nUSB-C charger, fuel gauge]
@@ -33,7 +33,7 @@ flowchart LR
     BAT --> SOC
   end
   EAR[Any Bluetooth earbuds]
-  SCREEN[Any screen, TV or USB-C monitor]
+  SCREEN[Any screen, TV or monitor]
   HUB[Hub on the user's computer]
   SVC[User's services\ncalendar, mail, contacts, messages, music]
   CLOUD[Cloud model of the user's choice]
@@ -63,12 +63,12 @@ The device has two processors with different jobs.
   WP1 measures; if suspend-to-RAM resume is too slow, a lighter standby state is the
   fallback.
 
-SoC candidates and what decides between them: Rockchip RK3576 (mainline Linux work in
-progress, NPU with a vendor runtime, HDMI and DisplayPort outputs in the product
-brief), Axera AX630C (lowest power, smallest NPU, no display output known), Qualcomm
-QCS6490 (strongest NPU, higher power, harder sourcing). WP1 measures power in idle and
-in inference, tokens per second and wake time on the same run for each board that is
-bought, and the choice is published with the data.
+SoC: Rockchip RK3576 (NPU with a vendor runtime, HDMI output, mainline Linux work in
+progress), with the Luckfox Core3576 development module for the first prototype. Two alternatives are
+followed in case the measurements rule it out: Axera AX630C (lowest power, smallest
+NPU, no display output known) and Qualcomm QCS6490 (strongest NPU, higher power,
+harder sourcing). WP1 measures power in idle and in inference, tokens per second and
+wake time on the same run, and the data is published.
 
 Handshake between the chips: a wake line plus UART (or SPI) with a small framed
 protocol: button events, battery state, display content from the SoC to the companion,
@@ -80,7 +80,7 @@ Leo OS is the system image for the SoC. It is a Linux distribution built from op
 components, with the voice agent as the primary interface.
 
 - Base: a minimal Linux image built with a reproducible tool (Buildroot or Yocto,
-  decided in WP1 after the SoC choice), read-only root, signed over-the-air updates,
+  decided in WP1), read-only root, signed over-the-air updates,
   software bill of materials. These are also the obligations of the EU Cyber
   Resilience Act for connected products from December 2027.
 - Audio: PipeWire and BlueZ (A2DP and HFP to earbuds), ALSA for the on-board codec,
@@ -99,8 +99,8 @@ components, with the voice agent as the primary interface.
   contacts, messages, music, and anything the user adds on the hub.
 - Playback: podcasts by RSS, radio from Radio Browser, music from the user's own
   library, Funkwhale or a streaming service the user authorises on the hub.
-- Viewing session (screen mode, step 1): when a screen is connected by HDMI or
-  USB-C, Leo OS starts a minimal Wayland session with one full-screen browser window
+- Viewing session (screen mode, step 1): when a screen is connected by HDMI (video
+  over USB-C is an alternative under evaluation), Leo OS starts a minimal Wayland session with one full-screen browser window
   that shows what the agent generated: a web page, a document, the transcript, what is
   playing. Voice stays the interface; a keyboard is optional. Screen mode is powered by
   the cable: a comparable board with the same SoC family draws about 2.7 W idle with a
@@ -125,7 +125,7 @@ components, with the voice agent as the primary interface.
    speaker, and playback resumes. An earcon under 200 ms confirms the request before
    the answer arrives.
 
-Published in WP3: end-to-end time from button release to first spoken word, for the
+Published in WP4: end-to-end time from button release to first spoken word, for the
 local path and the cloud path, and the share of requests that stay local on a
 60-sentence benchmark in Spanish and English.
 
@@ -138,7 +138,7 @@ local path and the cloud path, and the share of requests that stay local on a
 5. Long-lived tokens and cloud model keys stay on the hub. The device holds only
    short-lived capability tokens for the hub itself. Revocation happens on the hub.
 
-Threat model: `threat-model.md` (WP4).
+Threat model: `threat-model.md` (WP5).
 
 ### Playback
 
@@ -148,7 +148,8 @@ to the earbuds, or the built-in speaker.
 
 ### External screen (viewing session)
 
-1. User plugs an HDMI cable or a USB-C display, with power on the cable. The
+1. User plugs an HDMI cable, with power on the cable (video over USB-C is the
+   alternative under evaluation). The
    companion keeps the SoC awake and switches to the mains power regime.
 2. Leo OS starts the viewing session: one full-screen window with what the agent
    generated. A voice command opens a page, a document or the transcript in it.
@@ -168,14 +169,14 @@ first image, resolution, power and surface temperature in screen mode.
 | Hub to services | OAuth 2.1 with PKCE, RFC 8628 device flow where needed | Standard; tokens never on the device |
 | Hub tool interface | Model Context Protocol (MCP) | One interface for calendar, contacts, mail, messages and music; any model the user chooses can call it |
 | Earbuds | Bluetooth A2DP and HFP on BlueZ and PipeWire; LE Audio later via the nRF54L15 | Works with earbuds people already own |
-| External screen | HDMI or DisplayPort over USB-C, minimal Wayland session with one full-screen browser | Standard cables, no dock; one window keeps the system small |
+| External screen | HDMI (DisplayPort over USB-C as an alternative under evaluation), minimal Wayland session with one full-screen browser | Standard cables, no dock; one window keeps the system small |
 | Companion firmware | Zephyr | Nordic's supported RTOS; same path as ZSWatch |
 | System image | Buildroot or Yocto, read-only root, signed updates, SBOM | Reproducible, small, meets Cyber Resilience Act obligations |
 | Hardware design | KiCad | Free tool, CERN-OHL-S friendly |
 
 ## Open questions tracked as issues
 
-- SoC choice: power in idle and in inference, tokens per second, wake time and display
+- SoC confirmation: power in idle and in inference, tokens per second, wake time and display
   output on the same board.
 - Suspend-to-RAM resume time on the vendor kernel versus mainline.
 - Thermal budget of the SoC under sustained inference in a 50 g enclosure.

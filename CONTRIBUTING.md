@@ -11,7 +11,7 @@ Rules that apply to every contribution:
 - Documentation goes under `docs/` and is licensed CC BY-SA 4.0.
 - Every figure (current, latency, price, battery life) must say how and when it was
   measured or where it was read. Figures that are not measured are marked "not measured".
-- No patents. By contributing you agree not to assert patents on your contribution.
+- Patents: by contributing you agree not to assert patents on your contribution.
 - Plain language, one idea per sentence. Use "-" as the only dash.
 
 Speech engines (speech to text, text to speech, wake word) are not part of this
